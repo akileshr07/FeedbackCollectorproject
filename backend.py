@@ -46,8 +46,18 @@ Base.metadata.create_all(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # --- Sentiment Analysis ---
-positive_keywords = ["good", "great", "love", "excellent", "awesome"]
-negative_keywords = ["bad", "poor", "hate", "bug", "issue"]
+positive_keywords = [
+    "good", "great", "love", "excellent", "awesome", "nice", "well done", "fantastic", "superb",
+    "amazing", "improved", "satisfied", "helpful", "smooth", "fast", "positive", "brilliant",
+    "wonderful", "perfect", "liked", "appreciate", "convenient", "happy", "clean"
+]
+
+negative_keywords = [
+    "bad", "poor", "hate", "bug", "issue", "problem", "slow", "difficult", "not working",
+    "error", "delay", "crash", "negative", "worst", "disappointed", "fail", "unsatisfied",
+    "confusing", "messy", "unusable", "lag", "unhelpful", "annoying", "broken"
+]
+
 
 def analyze_sentiment(text: str) -> str:
     text = text.lower()
