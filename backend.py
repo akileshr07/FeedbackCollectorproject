@@ -21,9 +21,20 @@ app.add_middleware(
 )
 
 # --- Database Setup ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'feedback.db')}"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+# --- Database Setup ---
+# Old SQLite version
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'feedback.db')}"
+# engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
+# ✅ NEW: PostgreSQL Setup for Render
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://feedback_db_6e31_user:5Mosm9lU7mDJ3wDYWTdCZYEfSmcpn7Xm@dpg-d1j8uiur433s73814m5g-a.oregon-postgres.render.com/feedback_db_6e31"
+)
+
+engine = create_engine(DATABASE_URL)
+
 Base = declarative_base()
 
 class Feedback(Base):
