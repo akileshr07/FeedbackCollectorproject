@@ -14,20 +14,17 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For production, restrict to your frontend URL
+    allow_origins=["*"],  # For production, restrict to frontend domain(s)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # --- Database Setup ---
-# DATABASE_URL = "sqlite:///./feedback.db"
-# engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-Base = declarative_base()
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'feedback.db')}"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+Base = declarative_base()
 
 class Feedback(Base):
     __tablename__ = "feedbacks"
@@ -53,8 +50,19 @@ def analyze_sentiment(text: str) -> str:
         return "positive"
     return "neutral"
 
-# --- Pydantic Schema ---
+# --- Pydantic Schemas ---
 class FeedbackSchema(BaseModel):
+    id: int
+    name: str
+    product: str
+    feedback: str
+    category: str
+    sentiment: str
+
+    class Config:
+        orm_mode = True
+
+class FeedbackCreate(BaseModel):
     name: str = "Anonymous"
     product: str
     feedback: str
@@ -70,7 +78,7 @@ def root():
     return {"message": "Feedback Collector API is live"}
 
 @app.post("/feedback")
-def add_feedback(item: FeedbackSchema):
+def add_feedback(item: FeedbackCreate):
     db = SessionLocal()
     sentiment = analyze_sentiment(item.feedback)
     fb = Feedback(
@@ -89,9 +97,9 @@ def add_feedback(item: FeedbackSchema):
 @app.get("/feedback", response_model=List[FeedbackSchema])
 def get_feedback():
     db = SessionLocal()
-    data = db.query(Feedback).all()
+    feedbacks = db.query(Feedback).all()
     db.close()
-    return data
+    return feedbacks
 
 @app.get("/stats")
 def get_stats():
@@ -99,11 +107,9 @@ def get_stats():
     total = db.query(Feedback).count()
     by_category = {}
     by_sentiment = {}
-
     for fb in db.query(Feedback).all():
         by_category[fb.category] = by_category.get(fb.category, 0) + 1
         by_sentiment[fb.sentiment] = by_sentiment.get(fb.sentiment, 0) + 1
-
     db.close()
     return {
         "total": total,
@@ -111,7 +117,7 @@ def get_stats():
         "by_sentiment": by_sentiment,
     }
 
-# --- Keep-Alive Heartbeat for Render Free Plan ---
+# --- Keep-Alive Heartbeat ---
 RENDER_URL = os.getenv("RENDER_URL", "https://feedbackcollectorproject.onrender.com")
 
 def keep_alive():
@@ -122,7 +128,7 @@ def keep_alive():
             print("✅ Ping response:", res.status_code)
         except Exception as e:
             print("❌ Heartbeat error:", e)
-        time.sleep(300)  # 5 minutes
+        time.sleep(300)  # every 5 minutes
 
 # --- Uvicorn Entry Point ---
 if __name__ == "__main__":
