@@ -4,6 +4,21 @@ from pydantic import BaseModel
 from typing import List
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
+import threading
+import time
+import requests
+import os
+
+# --- FastAPI Setup ---
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # For production, restrict to your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- Database Setup ---
 DATABASE_URL = "sqlite:///./feedback.db"
@@ -21,17 +36,6 @@ class Feedback(Base):
 
 Base.metadata.create_all(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# --- FastAPI Setup ---
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify frontend domain(s)
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # --- Sentiment Analysis ---
 positive_keywords = ["good", "great", "love", "excellent", "awesome"]
@@ -99,7 +103,21 @@ def get_stats():
         "by_sentiment": by_sentiment,
     }
 
+# --- Keep-Alive Heartbeat for Render Free Plan ---
+RENDER_URL = os.getenv("RENDER_URL", "https://feedbackcollectorproject.onrender.com")
+
+def keep_alive():
+    while True:
+        try:
+            print("🔁 Pinging self to keep backend alive...")
+            res = requests.get(RENDER_URL)
+            print("✅ Ping response:", res.status_code)
+        except Exception as e:
+            print("❌ Heartbeat error:", e)
+        time.sleep(300)  # 5 minutes
+
 # --- Uvicorn Entry Point ---
 if __name__ == "__main__":
+    threading.Thread(target=keep_alive, daemon=True).start()
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=10000)
