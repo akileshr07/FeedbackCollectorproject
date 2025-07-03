@@ -57,6 +57,10 @@ class FeedbackSchema(BaseModel):
     category: str
 
 # --- Routes ---
+@app.on_event("startup")
+def startup_event():
+    print("📦 DB path:", os.path.abspath("feedback.db"))
+
 @app.get("/")
 def root():
     return {"message": "Feedback Collector API is live"}
