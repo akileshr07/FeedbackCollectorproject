@@ -91,8 +91,8 @@ def startup_event():
     print("📦 Connected to PostgreSQL database")
     
 
-@app.get("/")
-def root():
+@app.api_route("/", methods=["GET", "HEAD"])
+def root(request: Request):
     return {"message": "Feedback Collector API is live"}
 
 @app.post("/feedback")
