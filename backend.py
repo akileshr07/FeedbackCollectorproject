@@ -90,14 +90,6 @@ class FeedbackCreate(BaseModel):
 def startup_event():
     print("📦 Connected to PostgreSQL database")
     
-@app.delete("/reset-db")
-def reset_db():
-    db = SessionLocal()
-    db.query(Feedback).delete()
-    db.commit()
-    db.close()
-    return {"message": "Database reset successful"}
-
 
 @app.get("/")
 def root():
