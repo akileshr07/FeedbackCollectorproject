@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
@@ -21,9 +21,16 @@ app.add_middleware(
 )
 
 # --- Database Setup ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'feedback.db')}"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+# --- Database Setup ---
+# Old SQLite version
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'feedback.db')}"
+# engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
+# ✅ NEW: PostgreSQL Setup for Render
+DATABASE_URL = os.getenv("DATABASE_URL")
+engine = create_engine(DATABASE_URL)
+
 Base = declarative_base()
 
 class Feedback(Base):
@@ -39,8 +46,18 @@ Base.metadata.create_all(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # --- Sentiment Analysis ---
-positive_keywords = ["good", "great", "love", "excellent", "awesome"]
-negative_keywords = ["bad", "poor", "hate", "bug", "issue"]
+positive_keywords = [
+    "good", "great", "love", "excellent", "awesome", "nice", "well done", "fantastic", "superb",
+    "amazing", "improved", "satisfied", "helpful", "smooth", "fast", "positive", "brilliant",
+    "wonderful", "perfect", "liked", "appreciate", "convenient", "happy", "clean"
+]
+
+negative_keywords = [
+    "bad", "poor", "hate", "bug", "issue", "problem", "slow", "difficult", "not working",
+    "error", "delay", "crash", "negative", "worst", "disappointed", "fail", "unsatisfied",
+    "confusing", "messy", "unusable", "lag", "unhelpful", "annoying", "broken"
+]
+
 
 def analyze_sentiment(text: str) -> str:
     text = text.lower()
@@ -71,7 +88,8 @@ class FeedbackCreate(BaseModel):
 # --- Routes ---
 @app.on_event("startup")
 def startup_event():
-    print("📦 DB path:", os.path.abspath("feedback.db"))
+    print("📦 Connected to PostgreSQL database")
+    
 
 @app.get("/")
 def root():
