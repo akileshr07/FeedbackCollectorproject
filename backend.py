@@ -53,6 +53,10 @@ class FeedbackSchema(BaseModel):
     category: str
 
 # --- Routes ---
+@app.get("/")
+def root():
+    return {"message": "Feedback Collector API is live"}
+
 @app.post("/feedback")
 def add_feedback(item: FeedbackSchema):
     db = SessionLocal()
