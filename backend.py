@@ -82,7 +82,8 @@ class FeedbackCreate(BaseModel):
 # --- Routes ---
 @app.on_event("startup")
 def startup_event():
-    print("📦 DB path:", os.path.abspath("feedback.db"))
+    print("📦 Connected to PostgreSQL database")
+
 
 @app.get("/")
 def root():
