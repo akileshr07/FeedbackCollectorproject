@@ -4,3 +4,4 @@ sqlalchemy
 pydantic
 nest_asyncio
 requests
+psycopg2-binary
