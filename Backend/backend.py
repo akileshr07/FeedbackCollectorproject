@@ -46,24 +46,44 @@ Base.metadata.create_all(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # --- Sentiment Analysis ---
-positive_keywords = [
-    "good", "great", "love", "excellent", "awesome", "nice", "well done", "fantastic", "superb",
+
+
+# Convert keyword lists to sets for faster lookup
+positive_phrases = {"well done", "very helpful", "super easy", "great job", "user friendly"}
+positive_words = {
+    "good", "great", "love", "excellent", "awesome", "nice", "fantastic", "superb",
     "amazing", "improved", "satisfied", "helpful", "smooth", "fast", "positive", "brilliant",
     "wonderful", "perfect", "liked", "appreciate", "convenient", "happy", "clean"
-]
+}
 
-negative_keywords = [
-    "bad", "poor", "hate", "bug", "issue", "problem", "slow", "difficult", "not working",
-    "error", "delay", "crash", "negative", "worst", "disappointed", "fail", "unsatisfied",
-    "confusing", "messy", "unusable", "lag", "unhelpful", "annoying", "broken"
-]
-
+negative_phrases = {"not working", "very slow", "worst experience", "crashes often", "not helpful"}
+negative_words = {
+    "bad", "poor", "hate", "bug", "issue", "problem", "slow", "difficult", "error", "delay",
+    "crash", "negative", "worst", "disappointed", "fail", "unsatisfied", "confusing", "messy",
+    "unusable", "lag", "unhelpful", "annoying", "broken"
+}
 
 def analyze_sentiment(text: str) -> str:
     text = text.lower()
-    if any(word in text for word in negative_keywords):
+    
+    # Clean punctuation and normalize
+    text = re.sub(r"[^\w\s]", "", text)
+    
+    # Check for multi-word phrases first
+    for phrase in negative_phrases:
+        if phrase in text:
+            return "negative"
+    for phrase in positive_phrases:
+        if phrase in text:
+            return "positive"
+
+    # Tokenize the text
+    words = set(text.split())
+
+    # Check for word-based sentiment
+    if words & negative_words:
         return "negative"
-    elif any(word in text for word in positive_keywords):
+    if words & positive_words:
         return "positive"
     return "neutral"
 
