@@ -146,6 +146,20 @@ def get_stats():
         "by_category": by_category,
         "by_sentiment": by_sentiment,
     }
+    
+@app.delete("/feedback")
+def delete_all_feedback():
+    db = SessionLocal()
+    try:
+        num_deleted = db.query(Feedback).delete()
+        db.commit()
+        return {"message": f"Deleted {num_deleted} feedback entries"}
+    except Exception as e:
+        db.rollback()
+        return {"error": str(e)}
+    finally:
+        db.close()
+
 
 # --- Keep-Alive Heartbeat ---
 RENDER_URL = os.getenv("RENDER_URL", "https://feedbackcollectorproject.onrender.com")
