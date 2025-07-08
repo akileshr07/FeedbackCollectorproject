@@ -14,7 +14,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For production, restrict to frontend domain(s)
+    allow_origins=["https://feedback-collector-akileshr.netlify.app"],  # For production, restrict to frontend domain(s)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
