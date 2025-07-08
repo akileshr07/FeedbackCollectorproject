@@ -8,26 +8,20 @@ import threading
 import time
 import requests
 import os
+import re  # ✅ FIXED: required for sentiment analysis
 
 # --- FastAPI Setup ---
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://feedback-collector-akileshr.netlify.app"],  # For production, restrict to frontend domain(s)
+    allow_origins=["https://feedback-collector-akileshr.netlify.app"],  # ✅ Restrict to Netlify frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # --- Database Setup ---
-# --- Database Setup ---
-# Old SQLite version
-# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'feedback.db')}"
-# engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-
-# ✅ NEW: PostgreSQL Setup for Render
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 
@@ -46,9 +40,6 @@ Base.metadata.create_all(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # --- Sentiment Analysis ---
-
-
-# Convert keyword lists to sets for faster lookup
 positive_phrases = {"well done", "very helpful", "super easy", "great job", "user friendly"}
 positive_words = {
     "good", "great", "love", "excellent", "awesome", "nice", "fantastic", "superb",
@@ -65,11 +56,8 @@ negative_words = {
 
 def analyze_sentiment(text: str) -> str:
     text = text.lower()
-    
-    # Clean punctuation and normalize
-    text = re.sub(r"[^\w\s]", "", text)
-    
-    # Check for multi-word phrases first
+    text = re.sub(r"[^\w\s]", "", text)  # ✅ Clean punctuation
+
     for phrase in negative_phrases:
         if phrase in text:
             return "negative"
@@ -77,10 +65,7 @@ def analyze_sentiment(text: str) -> str:
         if phrase in text:
             return "positive"
 
-    # Tokenize the text
     words = set(text.split())
-
-    # Check for word-based sentiment
     if words & negative_words:
         return "negative"
     if words & positive_words:
@@ -97,7 +82,7 @@ class FeedbackSchema(BaseModel):
     sentiment: str
 
     class Config:
-        orm_mode = True
+        orm_mode = True  # ✅ Still works in Pydantic v1 or upgrade to 'from_attributes = True' for v2
 
 class FeedbackCreate(BaseModel):
     name: str = "Anonymous"
@@ -109,7 +94,6 @@ class FeedbackCreate(BaseModel):
 @app.on_event("startup")
 def startup_event():
     print("📦 Connected to PostgreSQL database")
-    
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def root(request: Request):
@@ -117,20 +101,28 @@ def root(request: Request):
 
 @app.post("/feedback")
 def add_feedback(item: FeedbackCreate):
+    print("📩 Received feedback:", item.dict())
+
     db = SessionLocal()
-    sentiment = analyze_sentiment(item.feedback)
-    fb = Feedback(
-        name=item.name.strip() or "Anonymous",
-        product=item.product,
-        feedback=item.feedback,
-        category=item.category,
-        sentiment=sentiment,
-    )
-    db.add(fb)
-    db.commit()
-    db.refresh(fb)
-    db.close()
-    return {"message": "Feedback submitted", "sentiment": sentiment}
+    try:
+        sentiment = analyze_sentiment(item.feedback)
+        fb = Feedback(
+            name=item.name.strip() or "Anonymous",
+            product=item.product,
+            feedback=item.feedback,
+            category=item.category,
+            sentiment=sentiment,
+        )
+        db.add(fb)
+        db.commit()
+        db.refresh(fb)
+        print("✅ Stored feedback with sentiment:", sentiment)
+        return {"message": "Feedback submitted", "sentiment": sentiment}
+    except Exception as e:
+        print("❌ ERROR:", str(e))
+        return {"error": "Internal server error"}
+    finally:
+        db.close()
 
 @app.get("/feedback", response_model=List[FeedbackSchema])
 def get_feedback():
